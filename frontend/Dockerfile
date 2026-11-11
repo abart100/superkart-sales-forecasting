@@ -13,8 +13,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Then the application code
+# Then the application code and its theme settings (smaller fonts, read by Streamlit from .streamlit/config.toml)
 COPY app.py .
+COPY .streamlit/ .streamlit/
 
 # Run as an unprivileged user rather than root
 RUN useradd --create-home appuser
