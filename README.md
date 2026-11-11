@@ -14,11 +14,11 @@ docker network create superkart-net
 
 cd backend
 docker build -t superkart-backend .
-docker run -d --name backend --network superkart-net -p 7860:7860 superkart-backend
+docker run -d --restart unless-stopped --name backend --network superkart-net -p 7860:7860 superkart-backend
 
 cd ../frontend
 docker build -t superkart-frontend .
-docker run -d --name frontend --network superkart-net -p 8501:8501 superkart-frontend
+docker run -d --restart unless-stopped --name frontend --network superkart-net -p 8501:8501 superkart-frontend
 
 docker ps    # both containers should report "(healthy)" after about 30 seconds
 ```
