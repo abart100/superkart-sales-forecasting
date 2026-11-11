@@ -1,0 +1,10 @@
+# Machine-learning libraries: identical to the training environment, so the serialized pipeline loads and predicts unchanged
+numpy==2.5.4
+pandas==3.1.1
+scikit-learn==1.9.1
+xgboost==3.4.1
+joblib==1.6.0
+# Web serving: Flask (API framework), Werkzeug (Flask's HTTP toolkit), gunicorn (production server)
+flask==3.1.3
+werkzeug==3.1.9
+gunicorn==27.0.0
