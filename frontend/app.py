@@ -93,6 +93,9 @@ def request_batch_forecast(file_name, file_bytes):
 # Page layout
 # ----------------------------------------------------------------------------------------------------------
 st.set_page_config(page_title="SuperKart Sales Forecast", page_icon="🛒", layout="wide")
+# Less empty space above and below the content (Streamlit's default top padding is about 6rem)
+st.markdown("<style>[data-testid='stMainBlockContainer'] {padding-top: 2.5rem; padding-bottom: 1rem;}</style>",
+            unsafe_allow_html=True)
 
 schema = fetch_schema()
 categories = schema["features"]["categorical"] if schema else FALLBACK_CATEGORIES
@@ -113,13 +116,13 @@ with st.sidebar:
     )
 
 st.title("🛒 SuperKart Sales Forecast")
-st.write("Forecast the total revenue of a product in a store - for a single product, or for a whole file of products.")
+st.caption("Forecast the total revenue of a product in a store - for a single product, or for a whole file of products.")
 
 tab_single, tab_batch = st.tabs(["Single product", "Batch forecast (CSV)"])
 
-# --- Single product: store and product details -> one forecast ---
+# --- Single product: store, product, and price details side by side -> one forecast ---
 with tab_single:
-    col_store, col_product = st.columns(2, gap="large")
+    col_store, col_product, col_numbers = st.columns(3, gap="medium")
 
     with col_store:
         st.subheader("Store")
@@ -149,6 +152,9 @@ with tab_single:
         product_category = st.selectbox("Product category", category_options,
                                         help="Perishables: dairy, meat, seafood, fruits and vegetables, breads, breakfast")
         sugar_content = st.selectbox("Sugar content", categories["Product_Sugar_Content"])
+
+    with col_numbers:
+        st.subheader("Price and size")
         product_mrp = st.number_input("Maximum retail price (MRP)", min_value=1.0, max_value=1000.0, value=146.74, step=1.0)
         product_weight = st.number_input("Weight", min_value=0.1, max_value=100.0, value=12.66, step=0.1)
         allocated_area = st.number_input("Share of the store's display area", min_value=0.001, max_value=1.0,
@@ -168,25 +174,29 @@ with tab_single:
         "Product_Type_Category": product_category,
     }
 
-    if st.button("Forecast revenue", type="primary", key="predict_single"):
+    # Button and result on one row: the forecast appears next to the button, not below the form
+    col_button, col_result, col_details = st.columns([1, 1, 2], vertical_alignment="center")
+    if col_button.button("Forecast revenue", type="primary", key="predict_single"):
         with st.spinner("Requesting the forecast..."):
             result, error = request_forecast(payload)
         if error:
             st.error(error)
         else:
-            st.metric("Forecast revenue for this product in this store", f"{result['Sales']:,.2f}")
+            col_result.metric("Forecast revenue", f"{result['Sales']:,.2f}")
+            with col_details.expander("Request sent to the API"):
+                st.json(payload)
             for warning in result["warnings"]:
                 st.warning(warning)
-            with st.expander("Request sent to the API"):
-                st.json(payload)
 
 # --- Batch forecast: CSV upload -> forecasts for every row ---
 with tab_batch:
-    st.write("Upload a CSV file with one product per row and these 10 columns (extra columns are ignored):")
-    st.code(", ".join(FEATURES), language=None)
+    col_intro, col_template = st.columns([3, 1], vertical_alignment="bottom")
+    col_intro.write("Upload a CSV file with one product per row and these 10 columns (extra columns are ignored):")
+    col_intro.code(", ".join(FEATURES), language=None)
     template = pd.DataFrame([dict(zip(FEATURES, [12.66, "Low Sugar", 0.056, 146.74, "Medium", "Tier 2",
                                                  "Supermarket Type2", "FD", 16, "Non Perishables"]))])
-    st.download_button("Download a CSV template", template.to_csv(index=False), "superkart_template.csv", "text/csv")
+    col_template.download_button("Download a CSV template", template.to_csv(index=False), "superkart_template.csv",
+                                 "text/csv")
 
     uploaded = st.file_uploader("CSV file", type=["csv"])
     if uploaded is not None:
@@ -196,8 +206,8 @@ with tab_batch:
         except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError):
             st.error("The file could not be read as a CSV file.")
             st.stop()
-        st.caption(f"{uploaded.name}: {len(batch):,} rows x {batch.shape[1]} columns - first rows:")
-        st.dataframe(batch.head(), hide_index=True)
+        with st.expander(f"Preview: {uploaded.name} - {len(batch):,} rows x {batch.shape[1]} columns"):
+            st.dataframe(batch.head(), hide_index=True)
 
         if st.button("Forecast all rows", type="primary", key="predict_batch"):
             with st.spinner(f"Requesting forecasts for {len(batch):,} rows..."):
@@ -209,12 +219,12 @@ with tab_batch:
                 forecasts.index = forecasts.index.astype(int)      # keys are row numbers sent as text
                 results = batch.assign(Forecast_Sales=forecasts)
 
-                col_rows, col_total, col_mean = st.columns(3)
+                col_rows, col_total, col_mean, col_download = st.columns(4, vertical_alignment="center")
                 col_rows.metric("Products forecast", f"{result['rows']:,}")
                 col_total.metric("Total forecast revenue", f"{forecasts.sum():,.2f}")
                 col_mean.metric("Average per product", f"{forecasts.mean():,.2f}")
+                col_download.download_button("Download the forecasts (CSV)", results.to_csv(index=False),
+                                             f"forecast_{uploaded.name}", "text/csv", type="primary")
                 for warning in result["warnings"]:
                     st.warning(warning)
                 st.dataframe(results, hide_index=True)
-                st.download_button("Download the forecasts (CSV)", results.to_csv(index=False),
-                                   f"forecast_{uploaded.name}", "text/csv", type="primary")
