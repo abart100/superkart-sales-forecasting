@@ -1,0 +1,4 @@
+# Streamlit look: smaller body text and headings, so each tab fits on one laptop screen
+[theme]
+baseFontSize = 14
+headingFontSizes = ["1.9rem", "1.35rem", "1.1rem"]
