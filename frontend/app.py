@@ -174,8 +174,8 @@ with tab_single:
         "Product_Type_Category": product_category,
     }
 
-    # Button and result on one row: the forecast appears next to the button, not below the form
-    col_button, col_result, col_details = st.columns([1, 1, 2], vertical_alignment="center")
+    # Button and result on one row, aligned to the top: the forecast appears next to the button, not below the form
+    col_button, col_result, col_details = st.columns([1, 1, 2], vertical_alignment="top")
     if col_button.button("Forecast revenue", type="primary", key="predict_single"):
         with st.spinner("Requesting the forecast..."):
             result, error = request_forecast(payload)
