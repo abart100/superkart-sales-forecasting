@@ -1,0 +1,48 @@
+{
+  "numeric_ranges": {
+    "Product_Weight": {
+      "min": 5.13,
+      "max": 22.0
+    },
+    "Product_Allocated_Area": {
+      "min": 0.004,
+      "max": 0.297
+    },
+    "Product_MRP": {
+      "min": 31.0,
+      "max": 266.0
+    }
+  },
+  "store_features": [
+    "Store_Type",
+    "Store_Size",
+    "Store_Location_City_Type",
+    "Store_Age_Years"
+  ],
+  "store_profiles": [
+    {
+      "Store_Type": "Supermarket Type2",
+      "Store_Size": "Medium",
+      "Store_Location_City_Type": "Tier 2",
+      "Store_Age_Years": 16
+    },
+    {
+      "Store_Type": "Departmental Store",
+      "Store_Size": "Medium",
+      "Store_Location_City_Type": "Tier 1",
+      "Store_Age_Years": 26
+    },
+    {
+      "Store_Type": "Food Mart",
+      "Store_Size": "Small",
+      "Store_Location_City_Type": "Tier 3",
+      "Store_Age_Years": 27
+    },
+    {
+      "Store_Type": "Supermarket Type1",
+      "Store_Size": "High",
+      "Store_Location_City_Type": "Tier 2",
+      "Store_Age_Years": 38
+    }
+  ]
+}
