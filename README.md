@@ -9,6 +9,15 @@ Forecasts the total revenue of a product in a SuperKart store. Two Docker contai
 
 ## Run in a GitHub Codespace (or any machine with Docker)
 
+One command builds both images, starts both containers, waits until they are healthy, sets ports 7860 and 8501 to
+Public (in a Codespace), and prints the public addresses:
+
+```bash
+bash deploy.sh
+```
+
+Re-run it after `git pull` to deploy updated files. The equivalent manual steps:
+
 ```bash
 docker network create superkart-net
 
@@ -23,7 +32,7 @@ docker run -d --restart unless-stopped --name frontend --network superkart-net -
 docker ps    # both containers should report "(healthy)" after about 30 seconds
 ```
 
-In a Codespace, set ports 7860 and 8501 to **Public** in the PORTS tab, then open the 8501 address for the web app.
+In a Codespace, ports 7860 and 8501 must be **Public** (`deploy.sh` does this; otherwise use the PORTS tab), then open the 8501 address for the web app.
 The frontend reaches the backend by its container name (`http://backend:7860`) on the shared network.
 
 ## API
