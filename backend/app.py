@@ -7,6 +7,7 @@ Endpoints:
     POST /v1/predict       one product-store record as a JSON object -> forecast revenue
     POST /v1/predictbatch  CSV file upload (form field "file"), one record per row -> forecast revenue per row
 """
+import json
 from pathlib import Path
 
 import joblib
@@ -36,6 +37,16 @@ NUMERIC_RULES = {
 }
 assert set(NUMERIC_RULES) == set(NUMERIC_FEATURES), "every numeric model feature needs a validation rule"
 
+# --- Training profile, saved by the notebook next to the model: what the model has actually seen ---
+# Inputs outside it are still forecast (they are valid), but the response flags them as extrapolations
+PROFILE_PATH = MODEL_PATH.parent / "training_profile.json"
+profile = json.loads(PROFILE_PATH.read_text())
+TRAINING_RANGES = profile["numeric_ranges"]                   # {feature: {"min": ..., "max": ...}} of the training set
+STORE_FEATURES = profile["store_features"]                    # the features that together describe a store
+TRAINING_STORES = pd.DataFrame(profile["store_profiles"])     # one row per store in the training data
+assert set(TRAINING_RANGES) <= set(NUMERIC_FEATURES) and set(STORE_FEATURES) <= set(FEATURES), \
+    "the training profile does not match the model's features"
+
 LABEL_FIXES = {"Product_Sugar_Content": {"reg": "Regular"}}   # the same label cleaning as in training
 MAX_ROWS_LISTED = 10                                          # row numbers listed per problem in batch errors
 
@@ -61,7 +72,8 @@ def prepare_features(frame):
 
     Returns (features, errors, warnings): `features` holds the 10 model features in training order with numbers
     converted to numbers; `errors` lists every problem that prevents a forecast; `warnings` lists inputs the model
-    can score but has not seen in training.
+    can score but has not seen in training - unseen categories, numbers outside the training range, and store
+    profiles that match none of the training stores.
     """
     single = len(frame) == 1
     missing = [col for col in FEATURES if col not in frame.columns]
@@ -83,6 +95,12 @@ def prepare_features(frame):
         out_of_range = ~not_number & ~rule(values)
         if out_of_range.any():
             errors.append(f"{col}{where(out_of_range, single)}: {message}")
+        if col in TRAINING_RANGES:              # valid, but beyond the values the model has seen
+            low, high = TRAINING_RANGES[col]["min"], TRAINING_RANGES[col]["max"]
+            outside = ~not_number & ~out_of_range & ((values < low) | (values > high))
+            if outside.any():
+                warnings.append(f"{col}{where(outside, single)}: outside the training range {low:g} to {high:g} "
+                                f"- the forecast is an extrapolation")
         features[col] = values
 
     for col in CATEGORICAL_FEATURES:
@@ -98,6 +116,21 @@ def prepare_features(frame):
                 f"(known values: {', '.join(KNOWN_CATEGORIES[col])})"
             )
         features[col] = cleaned
+
+    # --- Store profile: the model knows the training stores only as complete combinations of their attributes.
+    #     A new combination of known values (e.g., a Small Tier 1 store) gets no category warning, so it is checked
+    #     here; rows with an unseen store category are already flagged above and are not reported twice ---
+    if not errors:
+        store_values = features[STORE_FEATURES]
+        known_categories = pd.concat([store_values[col].isin(KNOWN_CATEGORIES[col])
+                                      for col in STORE_FEATURES if col in KNOWN_CATEGORIES], axis=1).all(axis=1)
+        matched = store_values.merge(TRAINING_STORES.assign(_known=True), on=STORE_FEATURES, how="left")["_known"]
+        new_profile = known_categories & matched.isna().to_numpy()
+        if new_profile.any():
+            warnings.append(
+                f"store profile{where(new_profile, single)}: this combination of {', '.join(STORE_FEATURES)} matches "
+                f"none of the {len(TRAINING_STORES)} training stores - the forecast is an extrapolation"
+            )
 
     return features, errors, warnings
 
@@ -130,6 +163,8 @@ def health():
             "POST /v1/predictbatch": "CSV file in form field 'file' -> {'predictions': {row: forecast}}",
         },
         "features": {"numeric": NUMERIC_FEATURES, "categorical": KNOWN_CATEGORIES},
+        "training_ranges": TRAINING_RANGES,
+        "training_stores": TRAINING_STORES.to_dict(orient="records"),
     })
 
 
