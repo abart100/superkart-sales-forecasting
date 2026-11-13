@@ -12,8 +12,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Then the application code and the serialized model
-COPY app.py superkart_model.joblib ./
+# Then the application code, the serialized model, and its training profile (for the extrapolation warnings)
+COPY app.py superkart_model.joblib training_profile.json ./
 
 # Run as an unprivileged user rather than root
 RUN useradd --create-home appuser
@@ -25,6 +25,6 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:7860/', timeout=4)"
 
-# gunicorn, a production web server: 2 worker processes (a standard Codespace has 2 CPU cores),
+# gunicorn, a production web server: 2 worker processes (the 2-core Codespace machine has 2 CPU cores),
 # listening on port 7860 on all interfaces, with one access-log line per request
 CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:7860", "--timeout", "60", "--access-logfile", "-", "app:superkart_api"]
