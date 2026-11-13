@@ -137,7 +137,7 @@ with tab_single:
                 "Store_Type": st.selectbox("Store type", categories["Store_Type"]),
                 "Store_Size": st.selectbox("Store size", categories["Store_Size"]),
                 "Store_Location_City_Type": st.selectbox("City tier", categories["Store_Location_City_Type"],
-                                                         help="Tier 1 = largest cities, Tier 3 = smallest"),
+                                                         help="Tier 1 = cities with the highest standard of living, Tier 3 = the lowest"),
                 "Established": st.number_input("Year of establishment", min_value=1900, max_value=REFERENCE_YEAR,
                                                value=2000, step=1),
             }
