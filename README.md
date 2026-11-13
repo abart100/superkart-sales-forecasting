@@ -39,11 +39,15 @@ The frontend reaches the backend by its container name (`http://backend:7860`) o
 
 | Endpoint | Request | Response |
 |:---|:---|:---|
-| `GET /` | - | Status and input schema |
+| `GET /` | - | Status, input schema, training ranges and stores |
 | `POST /v1/predict` | JSON object with the 10 features | `{"Sales": ..., "warnings": [...]}` |
 | `POST /v1/predictbatch` | CSV file in form field `file` | `{"predictions": {"0": ..., ...}, "rows": n, "warnings": [...]}` |
 
 Features: `Product_Weight, Product_Sugar_Content, Product_Allocated_Area, Product_MRP, Store_Size, Store_Location_City_Type, Store_Type, Product_Id_char, Store_Age_Years, Product_Type_Category`
+
+Invalid input is rejected (HTTP 400, with every problem listed). Inputs the model has not seen in training are forecast and
+flagged in `warnings`: unseen categories, numbers outside the training range, and store profiles that match none of the
+four training stores (`backend/training_profile.json`).
 
 ## Stop and clean up
 
